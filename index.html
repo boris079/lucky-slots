@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🎰 Lucky Slots</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:radial-gradient(ellipse at center,#1a0a2e 0%,#0d0514 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Arial,sans-serif;color:#fff;padding:12px;}
+.title{font-size:2rem;font-weight:900;color:#ffd700;letter-spacing:3px;margin-bottom:4px;text-align:center;}
+.sub{color:#aaa;font-size:0.7rem;letter-spacing:3px;margin-bottom:12px;text-align:center;}
+.machine{background:linear-gradient(145deg,#2d1b4e,#1a0f30);border:2px solid #ffd700;border-radius:16px;padding:16px;width:min(400px,100%);box-shadow:0 0 30px rgba(255,215,0,0.25);}
+.cbar{display:flex;justify-content:space-between;background:rgba(0,0,0,0.4);border:1px solid #ffd700;border-radius:8px;padding:8px 14px;margin-bottom:12px;}
+.clabel{color:#aaa;font-size:0.6rem;letter-spacing:2px;}
+.cval{font-size:1.5rem;font-weight:bold;color:#ffd700;}
+.reels{display:flex;gap:8px;justify-content:center;background:rgba(0,0,0,0.6);border:2px solid #333;border-radius:10px;padding:10px;margin-bottom:10px;position:relative;}
+.payline{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:2px;background:linear-gradient(90deg,transparent,#ff000088,transparent);pointer-events:none;}
+.reel{width:85px;height:95px;overflow:hidden;border:2px solid #555;border-radius:6px;background:#0a0015;display:flex;align-items:center;justify-content:center;font-size:2.7rem;transition:border-color 0.3s;}
+.msg{text-align:center;height:28px;font-size:0.95rem;font-weight:bold;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:#aaa;}
+.bets{margin-bottom:10px;}
+.blab{color:#888;font-size:0.6rem;letter-spacing:2px;text-align:center;margin-bottom:5px;}
+.bbtns{display:flex;gap:6px;}
+.bbtn{flex:1;padding:7px;border:2px solid #555;border-radius:6px;background:rgba(255,255,255,0.05);color:#ccc;font-weight:bold;font-size:0.85rem;cursor:pointer;}
+.bbtn.active{border-color:#ffd700;background:rgba(255,215,0,0.15);color:#ffd700;}
+.spin{width:100%;padding:13px;font-size:1.2rem;font-weight:900;letter-spacing:3px;border:none;border-radius:10px;background:linear-gradient(135deg,#cc0000,#ff4400);color:#fff;cursor:pointer;margin-bottom:10px;}
+.spin:disabled{opacity:0.6;}
+.hist{background:rgba(0,0,0,0.3);border:1px solid #333;border-radius:6px;padding:7px;}
+.htitle{color:#666;font-size:0.6rem;letter-spacing:2px;text-align:center;margin-bottom:5px;}
+.hitem{display:flex;justify-content:space-between;padding:2px 4px;font-size:0.75rem;}
+.hitem.w{color:#4cff6e;}.hitem.l{color:#ff6666;}
+.go{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.go.v{display:flex;}
+.gotitle{font-size:2rem;font-weight:900;color:#ff4444;}
+.gobtn{padding:10px 28px;font-size:1rem;font-weight:bold;border:none;border-radius:8px;background:linear-gradient(135deg,#ffd700,#ff8800);color:#000;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="title">🎰 LUCKY SLOTS</div>
+<div class="sub">TRY YOUR LUCK</div>
+<div class="machine">
+  <div class="cbar">
+    <div><div class="clabel">CREDITS</div><div class="cval" id="cred">1000</div></div>
+    <div style="text-align:right"><div class="clabel">BET</div><div class="cval" id="betD">10</div></div>
+  </div>
+  <div class="reels">
+    <div class="payline"></div>
+    <div class="reel" id="r0">🍒</div>
+    <div class="reel" id="r1">🍋</div>
+    <div class="reel" id="r2">🍊</div>
+  </div>
+  <div class="msg" id="msg">🎰 Good Luck!</div>
+  <div class="bets">
+    <div class="blab">SELECT BET</div>
+    <div class="bbtns">
+      <button class="bbtn active" id="b10" onclick="setBet(10,this)">10</button>
+      <button class="bbtn" id="b50" onclick="setBet(50,this)">50</button>
+      <button class="bbtn" id="b100" onclick="setBet(100,this)">100</button>
+    </div>
+  </div>
+  <button class="spin" id="spinBtn" onclick="spin()">🎰 SPIN</button>
+  <div class="hist">
+    <div class="htitle">RECENT RESULTS</div>
+    <div id="hist" style="color:#555;text-align:center;font-size:0.7rem;">No spins yet</div>
+  </div>
+</div>
+<div class="go" id="go">
+  <div class="gotitle">GAME OVER</div>
+  <div style="color:#aaa;">You ran out of credits!</div>
+  <button class="gobtn" onclick="restart()">🎰 Play Again</button>
+</div>
+<script>
+const SYM=['🍒','🍋','🍊','🍇','⭐','💎','7️⃣'];
+const WT=[20,18,18,15,12,10,7];
+let pool=[];SYM.forEach((s,i)=>{for(let j=0;j<WT[i];j++)pool.push(s);});
+let credits=1000,bet=10,spinning=false,hist=[];
+function rnd(){return pool[Math.floor(Math.random()*pool.length)];}
+function $id(x){return document.getElementById(x);}
+function setBet(v,btn){
+  if(spinning)return;
+  bet=v;$id('betD').textContent=v;
+  ['b10','b50','b100'].forEach(id=>{
+    const b=$id(id);b.classList.remove('active');
+  });btn.classList.add('active');
+}
+function animateReel(id,ms,cb){
+  const el=$id(id);let t=0;
+  const iv=setInterval(()=>{el.textContent=rnd();t+=80;if(t>=ms){clearInterval(iv);cb();}},80);
+}
+function spin(){
+  if(spinning)return;
+  if(credits<bet){setMsg('❌ Not enough credits!','#ff4444');return;}
+  spinning=true;$id('spinBtn').disabled=true;
+  credits-=bet;updateCreds();
+  setMsg('🎲 Spinning...','#aaa');
+  ['r0','r1','r2'].forEach(id=>{$id(id).style.borderColor='#555';});
+  const res=[rnd(),rnd(),rnd()];
+  animateReel('r0',600,()=>{
+    $id('r0').textContent=res[0];
+    animateReel('r1',500,()=>{
+      $id('r1').textContent=res[1];
+      animateReel('r2',400,()=>{
+        $id('r2').textContent=res[2];
+        evaluate(res);
+      });
+    });
+  });
+}
+function evaluate(res){
+  const [a,b,c]=res;
+  let mult=0,msg='',color='#aaa';
+  if(a===b&&b===c){
+    if(a==='7️⃣'){mult=50;msg='🎊 JACKPOT! ×50';}
+    else if(a==='💎'){mult=20;msg='💎 DIAMOND! ×20';}
+    else{mult=10;msg='🎉 THREE OF A KIND ×10';}
+    color='#ffd700';['r0','r1','r2'].forEach(id=>flashReel(id));
+  }else if(a===b||b===c||a===c){mult=2;msg='✨ MATCH ×2';color='#4cff6e';}
+  else{msg='😔 No Match';color='#ff4444';}
+  const win=Math.round(bet*mult);
+  if(mult>0){credits+=win;updateCreds();}
+  setMsg(msg,color);addHist(res,mult>0,win);
+  spinning=false;$id('spinBtn').disabled=false;
+  if(credits<=0)setTimeout(()=>{$id('go').classList.add('v');},800);
+}
+function flashReel(id){
+  const el=$id(id);let n=0;
+  const iv=setInterval(()=>{el.style.borderColor=n%2===0?'#ffd700':'#555';n++;if(n>8)clearInterval(iv);},200);
+}
+function setMsg(t,c){const el=$id('msg');el.textContent=t;el.style.color=c;}
+function updateCreds(){$id('cred').textContent=credits.toLocaleString();}
+function addHist(sym,win,amt){
+  hist.unshift({sym,win,amt});if(hist.length>5)hist.pop();
+  $id('hist').innerHTML=hist.map(h=>`<div class="hitem ${h.win?'w':'l'}"><span>${h.sym.join('')}</span><span>${h.win?'+'+h.amt:'-'+bet}</span></div>`).join('');
+}
+function restart(){
+  credits=1000;bet=10;hist=[];updateCreds();
+  $id('betD').textContent=10;$id('go').classList.remove('v');
+  ['r0','r1','r2'].forEach((id,i)=>$id(id).textContent=SYM[i]);
+  setMsg('🎰 Good Luck!','#aaa');
+  $id('hist').innerHTML='<span style="color:#555">No spins yet</span>';
+  setBet(10,$id('b10'));
+}
+</script>
+</body>
+</html>
